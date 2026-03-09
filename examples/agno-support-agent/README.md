@@ -1,19 +1,22 @@
 # Agno + Majordomo Gateway
 
-This example demonstrates using [Agno](https://docs.agno.com/) with Majordomo Gateway for multi-turn conversations with per-user cost tracking.
+This example demonstrates using [Agno](https://docs.agno.com/) with Majordomo Gateway for multi-step support workflows with structured outputs and per-step cost tracking.
 
 ## Features
 
-- **Multi-turn conversations**: Agent remembers context within a session
+- **Multi-step workflow**: Classify intent → generate response → summarize session
+- **Structured outputs**: `IntentClassification` and `TicketSummary` via Pydantic models
+- **Per-step cost tracking**: Each step (classify, respond, summarize) is tracked separately
 - **Multi-provider support**: OpenAI, Anthropic, and Gemini
 - **Per-user cost tracking**: Costs attributed via `X-Majordomo-User-Id`
 
 ## Project Structure
 
 ```
+main.py                # CLI entry point (Click)
 src/
-├── support_agent.py    # Support agent with conversation memory
-└── main.py             # CLI entry point
+├── models.py          # Pydantic models (IntentClassification, TicketSummary)
+└── support_agent.py   # Multi-step support agent with SupportSession
 ```
 
 ## Prerequisites
@@ -51,29 +54,37 @@ src/
 ### Interactive mode (recommended)
 
 ```bash
-uv run python -m src.main --user alice --interactive
+uv run python main.py --user alice --interactive
 ```
 
-This starts a multi-turn conversation where the agent remembers previous messages.
+This starts a multi-turn session where each message is classified, a response is generated, and when you quit the full session is summarized into a structured ticket.
 
 ### Single message
 
 ```bash
-uv run python -m src.main --user alice "Hi, I need help with billing"
+uv run python main.py --user alice "Hi, I need help with billing"
 ```
 
 ### Different providers
 
 ```bash
-uv run python -m src.main --provider anthropic --user alice --interactive
-uv run python -m src.main --provider gemini --user bob --interactive
+uv run python main.py --provider anthropic --user alice --interactive
+uv run python main.py --provider gemini --user bob --interactive
 ```
 
 ## How It Works
 
+### Three-Step Workflow
+
+Each customer message goes through:
+
+1. **Classify** (`step=classify`): Determines category (billing/technical/account/general) and urgency (low/medium/high) using structured output
+2. **Respond** (`step=respond`): Generates a support response informed by the classification
+3. **Summarize** (`step=summarize`): At session end, produces a `TicketSummary` with title, priority, description, and suggested actions
+
 ### Gateway Integration
 
-Models are configured with user metadata for cost attribution:
+Each step creates a separate model with its own `X-Majordomo-Step` header:
 
 ```python
 from majordomo_frameworks.agno import create_model
@@ -81,32 +92,26 @@ from majordomo_frameworks.agno import create_model
 model = create_model(
     "openai",
     feature="support-agent",
+    step="classify",
     user_id="alice",
     session_id="alice-session",
+    extra_headers={"X-Majordomo-Example-Framework": "agno"},
 )
 ```
 
-This adds headers to every request:
-- `X-Majordomo-Key`: Your gateway API key
-- `X-Majordomo-Feature`: Feature name for cost grouping
-- `X-Majordomo-User-Id`: User identifier for per-user tracking
-- `X-Majordomo-Session-Id`: Session identifier
-
-### Conversation Memory
-
-The agent maintains conversation history in memory using Agno's `add_history_to_context=True`. Within an interactive session, the agent remembers previous messages.
+This enables per-step cost analysis in your gateway logs.
 
 ## Viewing Logs
 
-Query per-user costs:
+Query per-step costs:
 
 ```sql
 SELECT
-    raw_metadata->>'User-Id' as user_id,
+    raw_metadata->>'Step' as step,
     COUNT(*) as requests,
     SUM(total_cost) as total_cost
 FROM llm_requests
 WHERE raw_metadata->>'Feature' = 'support-agent'
 GROUP BY 1
-ORDER BY total_cost DESC;
+ORDER BY step;
 ```

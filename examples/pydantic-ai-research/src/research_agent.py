@@ -42,10 +42,15 @@ def get_model_settings(provider: Provider, step: str) -> ModelSettings:
     Returns:
         ModelSettings with extra_headers configured
     """
+    example_headers = {"X-Majordomo-Example-Framework": "pydantic-ai"}
     if provider == "gemini":
-        headers = build_extra_headers_gemini(feature=FEATURE_NAME, step=step)
+        headers = build_extra_headers_gemini(
+            feature=FEATURE_NAME, step=step, extra_headers=example_headers
+        )
     else:
-        headers = build_extra_headers(feature=FEATURE_NAME, step=step)
+        headers = build_extra_headers(
+            feature=FEATURE_NAME, step=step, extra_headers=example_headers
+        )
 
     return ModelSettings(extra_headers=headers)
 

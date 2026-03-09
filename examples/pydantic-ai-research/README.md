@@ -12,11 +12,11 @@ This example demonstrates using [Pydantic AI](https://ai.pydantic.dev/) with Maj
 ## Project Structure
 
 ```
+main.py                 # CLI entry point (Click)
 src/
 ├── models.py           # Pydantic models for structured outputs
 ├── tools.py            # Web search tool (Tavily integration)
-├── research_agent.py   # Research agent with multi-step workflow
-└── main.py             # CLI entry point
+└── research_agent.py   # Research agent with multi-step workflow
 ```
 
 ## Prerequisites
@@ -58,16 +58,16 @@ Run the research agent with your preferred provider:
 
 ```bash
 # OpenAI (default)
-uv run python -m src.main "Impact of AI on software development"
+uv run python main.py "Impact of AI on software development"
 
 # Anthropic
-uv run python -m src.main --provider anthropic "Impact of AI on software development"
+uv run python main.py --provider anthropic "Impact of AI on software development"
 
 # Gemini
-uv run python -m src.main --provider gemini "Impact of AI on software development"
+uv run python main.py --provider gemini "Impact of AI on software development"
 
 # Specify a model
-uv run python -m src.main --provider openai --model gpt-4o-mini "Your topic"
+uv run python main.py --provider openai --model gpt-4o-mini "Your topic"
 ```
 
 ## How It Works
