@@ -47,6 +47,7 @@ def build_extra_headers(
     step: str | None = None,
     user_id: str | None = None,
     session_id: str | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Build Majordomo headers for use in model settings extra_headers.
 
@@ -65,6 +66,7 @@ def build_extra_headers(
         step: Workflow step for granular tracking
         user_id: User ID for per-user cost tracking
         session_id: Session ID for conversation tracking
+        extra_headers: Additional headers to include in the result
 
     Returns:
         Dict of X-Majordomo-* headers to pass as extra_headers
@@ -79,6 +81,8 @@ def build_extra_headers(
         headers["X-Majordomo-User-Id"] = user_id
     if session_id:
         headers["X-Majordomo-Session-Id"] = session_id
+    if extra_headers:
+        headers.update(extra_headers)
 
     return headers
 
@@ -89,6 +93,7 @@ def build_extra_headers_gemini(
     step: str | None = None,
     user_id: str | None = None,
     session_id: str | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Build Majordomo headers for Gemini models (includes provider routing header).
 
@@ -100,12 +105,17 @@ def build_extra_headers_gemini(
         step: Workflow step for granular tracking
         user_id: User ID for per-user cost tracking
         session_id: Session ID for conversation tracking
+        extra_headers: Additional headers to include in the result
 
     Returns:
         Dict of headers including X-Majordomo-Provider for Gemini routing
     """
     headers = build_extra_headers(
-        feature=feature, step=step, user_id=user_id, session_id=session_id
+        feature=feature,
+        step=step,
+        user_id=user_id,
+        session_id=session_id,
+        extra_headers=extra_headers,
     )
     headers["X-Majordomo-Provider"] = "gemini-openai"
     return headers
